@@ -8,16 +8,21 @@ THREE.O2WLoader = function ( manager ) {
 
   this.objects = {
 
-    /*
+    /**
      * 3 : Vector 3D. These are origin vectors which can be referenced later
      *
      * 11 : Triangles. A group of triangles with similar properties.
      *
+     * 12: Triangle_Strip, Triangle_Fan or Convex_Polygon. Doesn't really
+     *     matter much because they are identical to parse and draw.
+     *     For each of the objects in this list, we will add a type property
      */
 
-    '3': [],
+    '3': [ ],
 
-    '11': []
+    '11': [ ],
+
+    '12': [ ]
 
   };
 
@@ -29,7 +34,9 @@ THREE.O2WLoader.prototype = {
 
   load: function ( url, onProgress, onError ) {
 
-    var loader = new THREE.XHRLoader();
+    THREE.Cache.enabled = true;
+
+    var loader = new THREE.XHRLoader( );
 
     /**
      * We define the responseType as arraybuffer because we are handling
@@ -40,7 +47,7 @@ THREE.O2WLoader.prototype = {
     loader.setResponseType( 'arraybuffer' );
 
     // Load the file in THREE.Cache
-    loader.load( url, function () {}, onProgress, onError );
+    loader.load( url, function ( ) {}, onProgress, onError );
 
   },
 
@@ -53,142 +60,201 @@ THREE.O2WLoader.prototype = {
       if ( file ) {
         res( file );
       } else {
-        rej();
+        rej( );
       }
     } );
 
     openPromise.then( function ( file ) {
 
-        /*
+        /**
          * Get a view on this ArrayBuffer
          */
 
         var view = new DataView( file );
 
         var count = 0,
-          index = 0,
+          offset = 0,
           iterator = 0;
 
         var tempView;
 
-        /*
+        /**
          * Begin parsing the file
          * Start with zero offset and work on the way up
          * Based on the object type, calculate the distance to another object
          * Insert relevant data into this.objects
          */
 
-        var repeat = function ( index ) {
+        var repeat = function ( offset ) {
 
-          var objectTypeCurrent = view.getUint8( index++ );
-
-          if ( objectTypeCurrent === undefined )
+          if ( offset >= view.byteLength ) {
+            // Clear the Cached file
+            // THREE.Cache.remove( url );
             return;
+          }
 
-          switch ( objectTypeCurrent ) {
+          var objectType = view.getUint8( offset++ );
+
+          switch ( objectType ) {
 
           case 3:
 
             // This is the count of vertices
-            count = view.getUint8( index++ );
+            count = view.getUint8( offset++ );
 
             for ( iterator = 0; iterator < count; iterator++ ) {
 
               scope.objects[ '3' ].push( scope.getVector3D(
-                scope.getInt24( view, index ),
-                scope.getInt24( view, index + 3 ),
-                scope.getInt24( view, index + 6 )
+                scope.getInt24( view, offset ),
+                scope.getInt24( view, offset + 3 ),
+                scope.getInt24( view, offset + 6 )
               ) );
 
-              index += 9;
+              offset += 9;
 
             }
 
-            /*
-             * Call repeat with the incremented index
+            /**
+             * Call repeat with the incremented offset
              */
 
-            repeat( index );
+            repeat( offset );
 
             break;
 
           case 11:
+          case 12:
+          case 13:
+          case 14:
 
-            count = view.getUint8( index + 9 );
+            count = view.getUint8( offset + 7 );
 
-            tempView = new DataView( file, index + 10, count * 2 * 3 );
+            tempView = new DataView( file, offset + 8, count * 2 );
 
-            scope.objects[ '11' ].push( scope.getTriangleGroup( {
-              r: view.getUint8( index++ ).toString( 16 ),
-              g: view.getUint8( index++ ).toString( 16 ),
-              b: view.getUint8( index++ ).toString( 16 )
+            scope.getPrimitive( objectType, {
+              r: view.getUint8( offset + 1 ),
+              g: view.getUint8( offset + 2 ),
+              b: view.getUint8( offset + 3 )
             }, {
-              r: view.getUint8( index++ ).toString( 16 ),
-              g: view.getUint8( index++ ).toString( 16 ),
-              b: view.getUint8( index++ ).toString( 16 )
-            }, {
-              r: view.getUint8( index++ ).toString( 16 ),
-              g: view.getUint8( index++ ).toString( 16 ),
-              b: view.getUint8( index++ ).toString( 16 )
-            }, tempView ) );
+              r: view.getUint8( offset + 4 ),
+              g: view.getUint8( offset + 5 ),
+              b: view.getUint8( offset + 6 )
+            }, tempView );
 
-            index += count * 2 * 3;
+            offset += count * 2 + 8;
 
-            repeat( index );
+            repeat( offset );
 
             break;
 
           default:
 
+            console.error( 'Bad block ' + objectType + ' at offset ' + offset );
+
           }
         };
 
-        repeat( index );
+        repeat( offset );
 
       },
-      function () {
+      function ( ) {
         console.log( ':(' );
       } );
   },
 
-  render: function () {},
-
   getVector3D: function ( x, y, z ) {
 
     return [
-      x,
-      y,
-      z
+      x || 0,
+      y || 0,
+      z || 0
     ];
 
   },
 
-  getTriangleGroup: function ( ambient, diffuse, specular, vertices ) {
+  getPrimitive: function ( type, ambient, diffuse, indices ) {
 
-    var triangle = [];
+    var dest = type === 11 ? 11 : 12;
 
-    triangle.ambient = ambient;
-    triangle.diffuse = diffuse;
-    triangle.specular = specular;
+    var primitive = [ ];
 
-    var count = vertices.byteLength,
-      index = 0;
+    primitive.ambient = ambient;
+    primitive.diffuse = diffuse;
+    primitive.type = type;
 
-    for ( ; index < count; index += 2 ) {
-      triangle.push( [
-        vertices.getInt16( index, true ),
-        vertices.getInt16( index += 2, true ),
-        vertices.getInt16( index += 2, true )
-      ] );
+    var count = indices.byteLength,
+      offset = 0,
+      a, b, c;
+
+    switch ( type ) {
+    case 11:
+      for ( ; offset < count; offset += 2 ) {
+        a = indices.getUint16( offset, true );
+        b = indices.getUint16( offset += 2, true );
+        c = indices.getUint16( offset += 2, true );
+        if ( !( a === b || b === c || c === a ) ) {
+          primitive.push( [
+            a,
+            b,
+            c
+          ] );
+        }
+      }
+      break;
+    case 12:
+      for ( ; offset < count - 4; offset += 2 ) {
+        a = indices.getUint16( offset, true );
+        b = indices.getUint16( offset + 2, true );
+        c = indices.getUint16( offset + 4, true );
+        if ( !( a === b || b === c || c === a ) ) {
+          if ( offset % 4 ) {
+            primitive.push( [
+              a,
+              c,
+              b
+            ] );
+          } else {
+            primitive.push( [
+              a,
+              b,
+              c
+            ] );
+          }
+        }
+      }
+      break;
+    case 13:
+    case 14:
+      a = indices.getUint16( offset, true );
+      for ( ; offset < count - 4; offset += 2 ) {
+        b = indices.getUint16( offset + 2, true );
+        c = indices.getUint16( offset + 4, true );
+        if ( !( a === b || b === c || c === a ) ) {
+          primitive.push( [
+              a,
+              b,
+              c
+            ] );
+        }
+      }
+      break;
     }
 
-    return triangle;
+
+
+    this.objects[ dest ].push( primitive );
 
   },
 
-  getInt24: function ( view, index ) {
+  getInt24: function ( view, offset ) {
 
-    return ( view.getInt16( index, true ) << 8 ) | ( view.getInt8( index + 2 ) );
+    var out = ( view.getUint16( offset + 1, true ) << 8 | view.getUint8( offset ) );
+
+    if ( out & 0x800000 ) { // Negative number
+      out |= ~0xffffff;
+    }
+
+    return out;
 
   }
 
