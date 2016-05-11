@@ -66,6 +66,8 @@ THREE.O2WLoader.prototype = {
 
     openPromise.then( function ( file ) {
 
+        var RECURSE_MAX = 2500;
+
         /**
          * Get a view on this ArrayBuffer
          */
@@ -79,6 +81,11 @@ THREE.O2WLoader.prototype = {
         var tempView;
 
         /**
+         * Counter to be reset at RECURSE_MAX for the repeat function
+         */
+        var recurseCount = 0;
+
+        /**
          * Begin parsing the file
          * Start with zero offset and work on the way up
          * Based on the object type, calculate the distance to another object
@@ -86,6 +93,8 @@ THREE.O2WLoader.prototype = {
          */
 
         var repeat = function ( offset ) {
+
+          recurseCount++;
 
           if ( offset >= view.byteLength ) {
             // Clear the Cached file
@@ -117,10 +126,14 @@ THREE.O2WLoader.prototype = {
             /**
              * Call repeat with the incremented offset
              */
-
-            setTimeout( function ( ) {
+            if ( RECURSE_MAX > recurseCount ) {
               repeat( offset );
-            }, 0 );
+            } else {
+              setTimeout( function ( ) {
+                recurseCount = 0;
+                repeat( offset );
+              }, 0 );
+            }
 
             break;
 
@@ -145,9 +158,14 @@ THREE.O2WLoader.prototype = {
 
             offset += count * 2 + 8;
 
-            setTimeout( function ( ) {
+            if ( RECURSE_MAX > recurseCount ) {
               repeat( offset );
-            }, 0 );
+            } else {
+              setTimeout( function ( ) {
+                recurseCount = 0;
+                repeat( offset );
+              }, 0 );
+            }
 
             break;
 
@@ -158,9 +176,7 @@ THREE.O2WLoader.prototype = {
           }
         };
 
-        setTimeout( function ( ) {
-          repeat( offset );
-        }, 0 );
+        repeat( offset );
 
       },
       function ( ) {
