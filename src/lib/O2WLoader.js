@@ -89,7 +89,7 @@ THREE.O2WLoader.prototype = {
 
           if ( offset >= view.byteLength ) {
             // Clear the Cached file
-            // THREE.Cache.remove( url );
+            THREE.Cache.remove( url );
             return;
           }
 
@@ -118,7 +118,9 @@ THREE.O2WLoader.prototype = {
              * Call repeat with the incremented offset
              */
 
-            repeat( offset );
+            setTimeout( function ( ) {
+              repeat( offset );
+            }, 0 );
 
             break;
 
@@ -143,7 +145,9 @@ THREE.O2WLoader.prototype = {
 
             offset += count * 2 + 8;
 
-            repeat( offset );
+            setTimeout( function ( ) {
+              repeat( offset );
+            }, 0 );
 
             break;
 
@@ -154,7 +158,9 @@ THREE.O2WLoader.prototype = {
           }
         };
 
-        repeat( offset );
+        setTimeout( function ( ) {
+          repeat( offset );
+        }, 0 );
 
       },
       function ( ) {
