@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>
+    O2W Parser Demo
+  </title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+
+  <div id="container"></div>
+
+  <!-- Scripts in the proper order of necessity -->
+  <script type="text/javascript" src="three.min.js"></script>
+  <script type="text/javascript" src="OrbitControls.js"></script>
+  <script type="text/javascript" src="../src/lib/O2WLoader.js"></script>
+  
+
+  <script type="text/javascript">
+    var camera,
+      container,
+      controls,
+      grid,
+      renderer,
+      scene;
+
+    // We keep at least 10 grids for now
+    var gridSize = 8094,
+      gridGap = gridSize / 10;
+
+    // The factor to scale down the numbers from O2WLoader
+    const SCALE_FACTOR = 1000;
+
+    init();
+    animate();
+
+    ( function ( ) {
+      var o2w = new THREE.O2WLoader( );
+      o2w.render( 'tile', scene );
+    } ( ) );
+
+    function init() {
+
+      container = document.getElementById('container');
+
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 80940);
+      camera.position.z = 1000;
+
+      controls = new THREE.OrbitControls(camera, container);
+
+      grid = new THREE.GridHelper(gridSize, gridGap);
+      grid.setColors("#cccccc", "#cccccc");
+
+      scene.add(grid);
+
+      var ambientLight = new THREE.AmbientLight(0xFFFFFF);
+
+      scene.add(ambientLight);
+
+      renderer = new THREE.WebGLRenderer({
+        antialias: true
+      });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      container.appendChild(renderer.domElement);
+
+    }
+
+    function animate() {
+      window.requestAnimationFrame(animate); // assuming a compatible browser
+      render();
+    }
+
+    function render() {
+      renderer.render(scene, camera);
+    }
+  </script>
+
+</body>
+
+</html>
