@@ -133,7 +133,7 @@ THREE.O2WLoader.prototype = {
   },
 
   getVectorByIndex: function ( index ) {
-    var vertices = scope.objects[ '3' ];
+    var vertices = this.objects[ '3' ];
     return new THREE.Vector3( vertices[ index ][ 0 ],
       vertices[ index ][ 1 ],
       vertices[ index ][ 2 ] );
