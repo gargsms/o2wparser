@@ -126,6 +126,12 @@ THREE.O2WLoader.prototype = {
 
   },
 
+  getColorByRGB: function ( map ) {
+    return new THREE.Color( 'rgb(' + map.r +
+      ',' + map.g +
+      ',' + map.b + ')' );
+  },
+
   load: function ( url, onProgress, onError ) {
 
     THREE.Cache.enabled = true;
@@ -276,6 +282,72 @@ THREE.O2WLoader.prototype = {
       function ( ) {
         console.log( ':(' );
       } );
+  },
+
+  render: function ( ) {
+
+    var scope = this;
+
+    var renderedObject = new THREE.Object3D( ),
+      geo, mat, mesh,
+      vertices = scope.objects[ '3' ];
+
+    function drawPrimitive( primitive ) {
+      primitive.forEach( function ( group ) {
+
+        geo = new THREE.Geometry( );
+
+        group.forEach( function ( vs, i ) {
+
+          geo.vertices.push(
+            new THREE.Vector3( vertices[ vs[ 0 ] ][ 0 ] / 1000,
+              vertices[ vs[ 0 ] ][ 1 ] / 1000,
+              vertices[ vs[ 0 ] ][ 2 ] / 1000 ) );
+          geo.vertices.push(
+            new THREE.Vector3( vertices[ vs[ 1 ] ][ 0 ] / 1000,
+              vertices[ vs[ 1 ] ][ 1 ] / 1000,
+              vertices[ vs[ 1 ] ][ 2 ] / 1000 ) );
+          geo.vertices.push(
+            new THREE.Vector3( vertices[ vs[ 2 ] ][ 0 ] / 1000,
+              vertices[ vs[ 2 ] ][ 1 ] / 1000,
+              vertices[ vs[ 2 ] ][ 2 ] / 1000 ) );
+
+          geo.faces.push( new THREE.Face3( 3 * i + 0, 3 * i + 1, 3 * i + 2 ) );
+
+        } );
+
+        geo.computeFaceNormals( );
+
+        mat = new THREE.MeshBasicMaterial( {
+          side: THREE.BackSide,
+          color: scope.getColorByRGB( group.diffuse )
+        } );
+
+        mesh = new THREE.Mesh( geo, mat );
+
+        renderedObject.add( mesh );
+
+      } );
+    }
+
+    // Iterate over the primitives and append each to the renderedObject
+    if ( scope.objects[ '11' ].length ) {
+
+      drawPrimitive( scope.objects[ '11' ] );
+
+    }
+
+    // TODO: Find if TriangleStripDrawMode, TriangleFanDrawMode are of any use
+    // Optimize this block, or merge it in the block above if no distinction
+    // in case of TriangleStrip or TriangleFan than just Triangles
+    if ( scope.objects[ '12' ].length ) {
+
+      drawPrimitive( scope.objects[ '12' ] );
+
+    }
+
+    return renderedObject;
+
   }
 
 }
