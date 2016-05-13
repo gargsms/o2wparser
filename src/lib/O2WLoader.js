@@ -132,6 +132,13 @@ THREE.O2WLoader.prototype = {
       ',' + map.b + ')' );
   },
 
+  getVectorByIndex: function ( index ) {
+    var vertices = scope.objects[ '3' ];
+    return new THREE.Vector3( vertices[ index ][ 0 ],
+      vertices[ index ][ 1 ],
+      vertices[ index ][ 2 ] );
+  },
+
   load: function ( url, onProgress, onError ) {
 
     THREE.Cache.enabled = true;
@@ -297,29 +304,19 @@ THREE.O2WLoader.prototype = {
 
         geo = new THREE.Geometry( );
 
-        group.forEach( function ( vs, i ) {
+        group.forEach( function ( indexArray, i ) {
 
-          geo.vertices.push(
-            new THREE.Vector3( vertices[ vs[ 0 ] ][ 0 ] / 1000,
-              vertices[ vs[ 0 ] ][ 1 ] / 1000,
-              vertices[ vs[ 0 ] ][ 2 ] / 1000 ) );
-          geo.vertices.push(
-            new THREE.Vector3( vertices[ vs[ 1 ] ][ 0 ] / 1000,
-              vertices[ vs[ 1 ] ][ 1 ] / 1000,
-              vertices[ vs[ 1 ] ][ 2 ] / 1000 ) );
-          geo.vertices.push(
-            new THREE.Vector3( vertices[ vs[ 2 ] ][ 0 ] / 1000,
-              vertices[ vs[ 2 ] ][ 1 ] / 1000,
-              vertices[ vs[ 2 ] ][ 2 ] / 1000 ) );
+          geo.vertices.push( scope.getVectorByIndex( indexArray[ 0 ] ) );
+          geo.vertices.push( scope.getVectorByIndex( indexArray[ 1 ] ) );
+          geo.vertices.push( scope.getVectorByIndex( indexArray[ 2 ] ) );
 
-          geo.faces.push( new THREE.Face3( 3 * i + 0, 3 * i + 1, 3 * i + 2 ) );
+          geo.faces.push( new THREE.Face3( 3 * i + 1, 3 * i + 0, 3 * i + 2 ) );
 
         } );
 
         geo.computeFaceNormals( );
 
         mat = new THREE.MeshBasicMaterial( {
-          side: THREE.BackSide,
           color: scope.getColorByRGB( group.diffuse )
         } );
 
