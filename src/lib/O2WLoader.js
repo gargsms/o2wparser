@@ -32,6 +32,100 @@ THREE.O2WLoader.prototype = {
 
   constructor: THREE.O2WLoader,
 
+  getVector3D: function ( x, y, z ) {
+
+    return [
+      x || 0,
+      y || 0,
+      z || 0
+    ];
+
+  },
+
+  getPrimitive: function ( type, ambient, diffuse, indices ) {
+
+    var dest = type === 11 ? 11 : 12;
+
+    var primitive = [ ];
+
+    primitive.ambient = ambient;
+    primitive.diffuse = diffuse;
+    primitive.type = type;
+
+    var count = indices.byteLength,
+      offset = 0,
+      a, b, c;
+
+    switch ( type ) {
+    case 11:
+      for ( ; offset < count; offset += 2 ) {
+        a = indices.getUint16( offset, true );
+        b = indices.getUint16( offset += 2, true );
+        c = indices.getUint16( offset += 2, true );
+        if ( !( a === b || b === c || c === a ) ) {
+          primitive.push( [
+            a,
+            b,
+            c
+          ] );
+        }
+      }
+      break;
+    case 12:
+      for ( ; offset < count - 4; offset += 2 ) {
+        a = indices.getUint16( offset, true );
+        b = indices.getUint16( offset + 2, true );
+        c = indices.getUint16( offset + 4, true );
+        if ( !( a === b || b === c || c === a ) ) {
+          if ( offset % 4 ) {
+            primitive.push( [
+              a,
+              c,
+              b
+            ] );
+          } else {
+            primitive.push( [
+              a,
+              b,
+              c
+            ] );
+          }
+        }
+      }
+      break;
+    case 13:
+    case 14:
+      a = indices.getUint16( offset, true );
+      for ( ; offset < count - 4; offset += 2 ) {
+        b = indices.getUint16( offset + 2, true );
+        c = indices.getUint16( offset + 4, true );
+        if ( !( a === b || b === c || c === a ) ) {
+          primitive.push( [
+              a,
+              b,
+              c
+            ] );
+        }
+      }
+      break;
+    }
+
+    this.objects[ dest ].push( primitive );
+
+  },
+
+  getInt24: function ( view, offset ) {
+
+    var out = ( view.getUint16( offset + 1, true ) << 8 | view.getUint8( offset ) );
+
+    if ( out & 0x800000 ) { // Negative number
+      out |= ~0xffffff;
+    }
+
+    return out;
+
+  },
+
   load: function ( url, onProgress, onError ) {
 
     THREE.Cache.enabled = true;
@@ -182,102 +276,6 @@ THREE.O2WLoader.prototype = {
       function ( ) {
         console.log( ':(' );
       } );
-  },
-
-  getVector3D: function ( x, y, z ) {
-
-    return [
-      x || 0,
-      y || 0,
-      z || 0
-    ];
-
-  },
-
-  getPrimitive: function ( type, ambient, diffuse, indices ) {
-
-    var dest = type === 11 ? 11 : 12;
-
-    var primitive = [ ];
-
-    primitive.ambient = ambient;
-    primitive.diffuse = diffuse;
-    primitive.type = type;
-
-    var count = indices.byteLength,
-      offset = 0,
-      a, b, c;
-
-    switch ( type ) {
-    case 11:
-      for ( ; offset < count; offset += 2 ) {
-        a = indices.getUint16( offset, true );
-        b = indices.getUint16( offset += 2, true );
-        c = indices.getUint16( offset += 2, true );
-        if ( !( a === b || b === c || c === a ) ) {
-          primitive.push( [
-            a,
-            b,
-            c
-          ] );
-        }
-      }
-      break;
-    case 12:
-      for ( ; offset < count - 4; offset += 2 ) {
-        a = indices.getUint16( offset, true );
-        b = indices.getUint16( offset + 2, true );
-        c = indices.getUint16( offset + 4, true );
-        if ( !( a === b || b === c || c === a ) ) {
-          if ( offset % 4 ) {
-            primitive.push( [
-              a,
-              c,
-              b
-            ] );
-          } else {
-            primitive.push( [
-              a,
-              b,
-              c
-            ] );
-          }
-        }
-      }
-      break;
-    case 13:
-    case 14:
-      a = indices.getUint16( offset, true );
-      for ( ; offset < count - 4; offset += 2 ) {
-        b = indices.getUint16( offset + 2, true );
-        c = indices.getUint16( offset + 4, true );
-        if ( !( a === b || b === c || c === a ) ) {
-          primitive.push( [
-              a,
-              b,
-              c
-            ] );
-        }
-      }
-      break;
-    }
-
-
-
-    this.objects[ dest ].push( primitive );
-
-  },
-
-  getInt24: function ( view, offset ) {
-
-    var out = ( view.getUint16( offset + 1, true ) << 8 | view.getUint8( offset ) );
-
-    if ( out & 0x800000 ) { // Negative number
-      out |= ~0xffffff;
-    }
-
-    return out;
-
   }
 
 }
