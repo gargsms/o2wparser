@@ -43,18 +43,17 @@ THREE.O2WLoader.prototype = {
   getVector3D: function ( x, y, z ) {
 
     return [
-      x || 0,
-      y || 0,
-      z || 0
+      x / SCALE_FACTOR || 0,
+      y / SCALE_FACTOR || 0,
+      z / SCALE_FACTOR || 0
     ];
 
   },
 
-  getPrimitive: function ( type, ambient, diffuse, indices ) {
+  getPrimitive: function ( type, diffuse, indices ) {
 
     var primitive = [ ];
 
-    primitive.ambient = ambient;
     primitive.diffuse = diffuse;
     primitive.type = type;
 
@@ -260,9 +259,9 @@ THREE.O2WLoader.prototype = {
         case 13:
         case 14:
 
-          count = view.getUint8( offset + 7 );
+          count = view.getUint8( offset + 4 );
 
-          tempView = new DataView( file, offset + 8, count * 2 );
+          tempView = new DataView( file, offset + 5, count * 2 );
 
           dest = objectType === 11 ? 11 : 12;
 
@@ -271,13 +270,9 @@ THREE.O2WLoader.prototype = {
               r: view.getUint8( offset + 1 ),
               g: view.getUint8( offset + 2 ),
               b: view.getUint8( offset + 3 )
-            }, {
-              r: view.getUint8( offset + 4 ),
-              g: view.getUint8( offset + 5 ),
-              b: view.getUint8( offset + 6 )
             }, tempView ) );
 
-          offset += count * 2 + 8;
+          offset += count * 2 + 5;
 
           if ( RECURSE_MAX > recurseCount ) {
             repeat( offset );
@@ -298,8 +293,6 @@ THREE.O2WLoader.prototype = {
       };
 
       repeat( offset );
-
-
     } );
 
     return promisify;
@@ -337,10 +330,12 @@ THREE.O2WLoader.prototype = {
                   geo.computeFaceNormals( );
 
                   mat = new THREE.MeshBasicMaterial( {
+                    side: THREE.DoubleSide,
                     color: scope.getColorByRGB( group.diffuse )
                   } );
 
                   mesh = new THREE.Mesh( geo, mat );
+
 
                   renderedObject.add( mesh );
 
@@ -364,6 +359,8 @@ THREE.O2WLoader.prototype = {
               }
 
               scene.add( renderedObject );
+
+              delete scope.objects[ url ];
 
             }, function ( objectType, offset ) {
               console.error( 'Bad object ' + objectType + ' at offset ' + offset );
