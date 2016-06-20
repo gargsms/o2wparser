@@ -37,11 +37,11 @@
     leaves.translate( 0, ( 1 + stemRatio ) * height / 2, 0 );
 
     var trunkMat = new THREE.MeshBasicMaterial( {
-      color: new THREE.Color( 0x6b5425 )
+      color: new THREE.Color( 0x4c3333 )
     } );
 
     var leavesMat = new THREE.MeshLambertMaterial( {
-      color: new THREE.Color( 0x5cb404 )
+      color: new THREE.Color( 0x008000 )
     } );
 
     tree.add( new THREE.Mesh( trunk, trunkMat ) );
