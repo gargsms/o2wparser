@@ -28,13 +28,17 @@ THREE.O2WLoader.prototype = {
        * 12: Triangle_Strip, Triangle_Fan or Convex_Polygon. Doesn't really
        *     matter much because they are identical to parse and draw.
        *     For each of the objects in this list, we will add a type property
+       *
+       * 18: Trees as a primitive structure
        */
 
       '3': [ ],
 
       '11': [ ],
 
-      '12': [ ]
+      '12': [ ],
+
+      '18': [ ]
 
     };
 
@@ -285,6 +289,27 @@ THREE.O2WLoader.prototype = {
 
           break;
 
+        case 18:
+
+          scope.objects[ url ][ '18' ].push( {
+            c: view.getUint8( offset ),
+            h: view.getUint16( offset + 10 ) / 5000,
+            p: scope.getVector3D( scope.getInt24( view, offset + 1 ),
+              scope.getInt24( view, offset + 4 ),
+              scope.getInt24( view, offset + 7 ) )
+          } );
+
+          offset += 12;
+
+          if ( RECURSE_MAX > recurseCount ) {
+            repeat( offset );
+          } else {
+            setTimeout( function ( ) {
+              recurseCount = 0;
+              repeat( offset );
+            }, 0 );
+          }
+
         default:
 
           rej( objectType, offset );
@@ -355,6 +380,22 @@ THREE.O2WLoader.prototype = {
               if ( scope.objects[ url ][ '12' ].length ) {
 
                 drawPrimitive( scope.objects[ url ][ '12' ] );
+
+              }
+
+              // Add the Trees to the world
+              if ( scope.objects[ url ][ '18' ].length ) {
+
+                scope.objects[ url ][ '18' ].forEach( function ( tree ) {
+
+                  var treeObject = THREE.TREE( tree.p, tree.h, tree.c );
+
+                  if( treeObject !== null ) {
+                    renderedObject.add( treeObject );
+                  }
+
+                } );
+
 
               }
 
