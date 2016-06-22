@@ -310,6 +310,8 @@ THREE.O2WLoader.prototype = {
             }, 0 );
           }
 
+          break;
+
         default:
 
           rej( objectType, offset );
@@ -395,7 +397,6 @@ THREE.O2WLoader.prototype = {
                   }
 
                 } );
-
 
               }
 
